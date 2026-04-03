@@ -1,0 +1,9 @@
+[project]
+name = "torchfoo"
+version = "0.1.0"
+description = "A collection of genearl utilities for PyTorch"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>= 2.7.0"
+]
