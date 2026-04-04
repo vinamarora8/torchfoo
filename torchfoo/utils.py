@@ -37,6 +37,16 @@ def seed_everything(seed: int, deterministic: bool = False):
 
 
 def current_device():
+    r"""Return the current device.
+
+    In a distributed context, returns the device assigned to the current
+    process. Outside of a distributed context, returns the current CUDA device
+    if CUDA is available, otherwise ``torch.device("cpu")``.
+
+    Returns:
+        The current :class:`torch.device`, or an :class:`int` CUDA device
+        index when running in a distributed CUDA context.
+    """
     from torchfoo.distributed.distributed import _distributed_state
 
     if _distributed_state.initialized:
