@@ -13,16 +13,16 @@ Decorate your training function and call it normally from the main process:
 
 .. code-block:: python
 
-    import torchfoo as tfo
+    import torchfoo as tfoo
 
-    @tfo.dist.parallelize()
+    @tfoo.dist.parallelize()
     def train(cfg):
-        rank = tfo.dist.get_rank()
-        world_size = tfo.dist.get_world_size()
-        device = tfo.current_device()
+        rank = tfoo.dist.get_rank()
+        world_size = tfoo.dist.get_world_size()
+        device = tfoo.current_device()
 
         model = MyModel().to(device)
-        model = tfo.ddp.make_module_ddp(model)
+        model = tfoo.ddp.make_module_ddp(model)
 
         for batch in dataloader:
             ...
@@ -40,7 +40,7 @@ Pass ``world_size`` to use a specific number of processes:
 
 .. code-block:: python
 
-    @tfo.dist.parallelize(world_size=2)
+    @tfoo.dist.parallelize(world_size=2)
     def train(cfg):
         ...
 
@@ -55,10 +55,10 @@ Inside the decorated function, use :func:`~torchfoo.distributed.get_rank` and
 
 .. code-block:: python
 
-    @tfo.dist.parallelize()
+    @tfoo.dist.parallelize()
     def train(cfg):
-        rank = tfo.dist.get_rank()          # 0 .. world_size-1
-        world_size = tfo.dist.get_world_size()
+        rank = tfoo.dist.get_rank()          # 0 .. world_size-1
+        world_size = tfoo.dist.get_world_size()
 
         if rank == 0:
             print(f"Training on {world_size} GPUs")
@@ -68,7 +68,7 @@ For rank-0-only side effects (logging, saving checkpoints), use the
 
 .. code-block:: python
 
-    @tfo.dist.rank_zero_only
+    @tfoo.dist.rank_zero_only
     def save_checkpoint(model, path):
         torch.save(model.state_dict(), path)
 
@@ -82,11 +82,11 @@ mode, so the same code works for both single- and multi-GPU runs:
 
 .. code-block:: python
 
-    @tfo.dist.parallelize()
+    @tfoo.dist.parallelize()
     def train(cfg):
-        device = tfo.current_device()
+        device = tfoo.current_device()
         model = MyModel().to(device)
-        model = tfo.ddp.make_module_ddp(model)   # no-op if world_size == 1
+        model = tfoo.ddp.make_module_ddp(model)   # no-op if world_size == 1
         ...
 
 Full Example
@@ -95,7 +95,7 @@ Full Example
 .. code-block:: python
 
     import torch
-    import torchfoo as tfo
+    import torchfoo as tfoo
     from dataclasses import dataclass
 
     @dataclass
@@ -103,13 +103,13 @@ Full Example
         epochs: int = 10
         lr: float = 1e-3
 
-    @tfo.dist.parallelize()
+    @tfoo.dist.parallelize()
     def train(cfg: Config):
-        rank = tfo.dist.get_rank()
-        device = tfo.current_device()
+        rank = tfoo.dist.get_rank()
+        device = tfoo.current_device()
 
         model = torch.nn.Linear(128, 10).to(device)
-        model = tfo.ddp.make_module_ddp(model)
+        model = tfoo.ddp.make_module_ddp(model)
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
         for epoch in range(cfg.epochs):

@@ -197,12 +197,12 @@ def parallelize(
 
     Examples::
 
-        import torchfoo as tfo
+        import torchfoo as tfoo
 
-        @tfo.dist.parallelize()
+        @tfoo.dist.parallelize()
         def train(cfg):
-            rank = tfo.dist.get_rank()
-            world_size = tfo.dist.get_world_size()
+            rank = tfoo.dist.get_rank()
+            world_size = tfoo.dist.get_world_size()
             ...
 
         if __name__ == "__main__":
