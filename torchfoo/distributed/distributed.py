@@ -238,7 +238,9 @@ def _parallelize_worker(
     args,
     kwargs,
 ):
-    # wrapped_fn is the @parallelize wrapper; __wrapped__ is the original function
+    # wrapper is the @parallelize wrapper; __wrapped__ is the original function
+    # This is needed to get around the problem with pickle not being able to work with
+    # local functions
     func = wrapper.__wrapped__
     setup_distributed(
         rank,
