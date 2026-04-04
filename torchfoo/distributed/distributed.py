@@ -195,31 +195,32 @@ def parallelize(
             port = master_port if master_port is not None else _get_open_port()
 
             if ngpus > 1:
-                mp.spawn(
-                    _parallelize_worker,
-                    args=(
-                        wrapper,
-                        ngpus,
-                        master_addr,
-                        port,
-                        backend,
-                        args,
-                        kwargs,
-                    ),
-                    nprocs=ngpus,
-                    join=True,
-                )
-            else:
-                _parallelize_worker(
-                    0,
-                    wrapper,
-                    ngpus,
-                    master_addr,
-                    port,
-                    backend,
-                    args,
-                    kwargs,
-                )
+                ctx = mp.get_context("spawn")
+                for rank in range(1, ngpus):
+                    ctx.Process(
+                        target=_parallelize_worker,
+                        args=(
+                            rank,
+                            wrapper,
+                            ngpus,
+                            master_addr,
+                            port,
+                            backend,
+                            args,
+                            kwargs,
+                        ),
+                    ).start()
+
+            _parallelize_worker(
+                0,
+                wrapper,
+                ngpus,
+                master_addr,
+                port,
+                backend,
+                args,
+                kwargs,
+            )
 
         return wrapper
 
