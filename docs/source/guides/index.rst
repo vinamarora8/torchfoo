@@ -1,8 +1,8 @@
-Guides
-======
+User Guide
+==========
 
 .. toctree::
    :maxdepth: 1
 
    installation
-   parallelize
+   distributed_training

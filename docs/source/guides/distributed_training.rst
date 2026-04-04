@@ -1,5 +1,5 @@
-Distributed Training Setup with ``torchfoo``
-============================================
+Easy Distributed Training Setup
+===============================
 
 Spawning Parallel Processes
 ---------------------------
