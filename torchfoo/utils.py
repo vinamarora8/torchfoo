@@ -37,7 +37,15 @@ def seed_everything(seed: int, deterministic: bool = False):
 
 
 def current_device():
-    if torch.cuda.is_available():
-        return torch.cuda.current_device()
+    from torchfoo.distributed.distributed import _distributed_state
+
+    if _distributed_state.initialized:
+        if _distributed_state.use_cuda:
+            return torch.cuda.current_device()
+        else:
+            return torch.device("cpu")
     else:
-        return torch.device("cpu")
+        if torch.cuda.is_available():
+            return torch.cuda.current_device()
+        else:
+            return torch.device("cpu")

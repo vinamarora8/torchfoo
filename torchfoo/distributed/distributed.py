@@ -14,6 +14,14 @@ import torch
 import torch.distributed as dist
 
 
+class _DistributedState:
+    initialized: bool = False
+    use_cuda: bool = False
+
+
+_distributed_state = _DistributedState()
+
+
 def is_distributed() -> bool:
     r"""Check if distributed mode is initialized
 
@@ -100,6 +108,11 @@ def setup_distributed(
     import os
 
     if (world_size > 1) or force:
+        if _distributed_state.initialized:
+            raise RuntimeError(
+                "A distributed process group has already been initialized."
+            )
+
         use_cuda = _should_use_cuda(world_size)
 
         if backend == "auto":
@@ -128,9 +141,14 @@ def setup_distributed(
             init_kwargs["device_id"] = rank
         dist.init_process_group(**init_kwargs)  # ty:ignore[invalid-argument-type]
 
+        _distributed_state.initialized = True
+        _distributed_state.use_cuda = use_cuda
+
         return True
     else:
         logging.info("Skipping distributed setup")
+        _distributed_state.use_cuda = torch.cuda.is_available()
+
         return False
 
 
@@ -138,6 +156,8 @@ def cleanup_distributed():
     r"""Destroy the distributed process group if one is initialized."""
     if dist.is_initialized():
         dist.destroy_process_group()
+    _distributed_state.initialized = False
+    _distributed_state.use_cuda = False
 
 
 def _get_open_port() -> int:
@@ -244,7 +264,7 @@ def _parallelize_worker(
     # This is needed to get around the problem with pickle not being able to work with
     # local functions
     func = wrapper.__wrapped__
-    spawned = setup_distributed(
+    setup_distributed(
         rank,
         world_size,
         master_addr=master_addr,
@@ -253,7 +273,7 @@ def _parallelize_worker(
         force=force,
     )
     try:
-        if spawned and _should_use_cuda(world_size):
+        if _distributed_state.use_cuda:
             torch.cuda.set_device(rank)
         func(*args, **kwargs)
     finally:
