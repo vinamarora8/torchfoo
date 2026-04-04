@@ -11,4 +11,5 @@ class TestVersion:
     def test_version_format(self):
         parts = torchfoo.__version__.split(".")
         assert len(parts) >= 2
-        assert parts[0].isdigit() and parts[1].isdigit()
+        assert 3 <= len(parts) <= 4
+        assert all(p.isdigit() for p in parts[:3])
