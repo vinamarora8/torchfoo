@@ -1,7 +1,20 @@
 import os
 import sys
+from unittest.mock import MagicMock
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../.."))
+
+# Mock torch so RTD doesn't need to install it
+for _mod in [
+    "torch",
+    "torch.nn",
+    "torch.nn.parallel",
+    "torch.distributed",
+    "torch.cuda",
+    "torch.autograd",
+    "torch.multiprocessing",
+]:
+    sys.modules[_mod] = MagicMock()
 
 project = "torchfoo"
 author = "Vinam Arora"
