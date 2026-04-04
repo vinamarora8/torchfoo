@@ -5,9 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "torchfoo"
 version = "0.1.0"
-description = "A collection of genearl utilities for PyTorch"
-readme = "README.md"
-requires-python = ">=3.10"
 dependencies = [
     "torch>= 2.7.0"
+]
+requires-python = ">=3.10"
+authors = [
+  {name = "Vinam Arora", email = "vinam@seas.upenn.edu"},
+]
+description = "A collection of genearl utilities for PyTorch"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black==24.2.0",
 ]
