@@ -1,5 +1,7 @@
 # torchfoo
 
+[![Documentation](https://img.shields.io/badge/docs-readthedocs-blue)](https://torchfoo.readthedocs.io)
+
 A collection of utilities for PyTorch
 
 ## Installation
