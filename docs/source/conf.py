@@ -18,7 +18,7 @@ extensions = [
     "sphinx.ext.viewcode",
 ]
 
-autosummary_generate = ["api"]
+autosummary_generate = ["generated/api"]
 autodoc_typehints = "description"
 autodoc_default_options = {
     "members": True,
@@ -63,6 +63,8 @@ def _build_api_rst(app):
     import pathlib
 
     src = pathlib.Path(app.srcdir)
+    generated = src / "generated"
+    generated.mkdir(exist_ok=True)
     lines = ["API Reference", "=============", ""]
     for mod_name, title, exclude in _API_MODULES:
         mod = importlib.import_module(mod_name)
@@ -72,7 +74,7 @@ def _build_api_rst(app):
             "-" * len(title),
             "",
             ".. autosummary::",
-            "   :toctree: generated",
+            "   :toctree: .",
             "   :nosignatures:",
             f"   :caption: {title}",
             "",
@@ -80,7 +82,7 @@ def _build_api_rst(app):
         for m in members:
             lines.append(f"   ~{mod_name}.{m}")
         lines.append("")
-    src.joinpath("api.rst").write_text("\n".join(lines))
+    generated.joinpath("api.rst").write_text("\n".join(lines))
 
 
 def setup(app):
