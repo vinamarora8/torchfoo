@@ -75,7 +75,7 @@ def setup_distributed(
     master_port: str | int | None = None,
     backend: str = "auto",
     force: bool = False,
-):
+) -> bool:
     r"""Initialize a distributed process group.
 
     If world_size is 1 and force is False, setup is skipped.
@@ -89,6 +89,9 @@ def setup_distributed(
             CUDA is available and there are enough GPUs for the world_size,
             "gloo" otherwise.
         force: if True, initialize even when world_size is 1
+
+    Returns:
+        False if setup was skipped, True otherwise
     """
     import os
 
@@ -120,8 +123,11 @@ def setup_distributed(
         if use_cuda:
             init_kwargs["device_id"] = rank
         dist.init_process_group(**init_kwargs)  # ty:ignore[invalid-argument-type]
+
+        return True
     else:
         logging.info("Skipping distributed setup")
+        return False
 
 
 def cleanup_distributed():
