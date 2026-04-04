@@ -30,7 +30,7 @@ extensions = [
     "sphinx.ext.intersphinx",
 ]
 
-autosummary_generate = True
+autosummary_generate = ["api"]
 autodoc_default_options = {
     "members": True,
     "undoc-members": False,
