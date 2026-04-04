@@ -52,9 +52,9 @@ intersphinx_mapping = {
 # Modules to include in API reference.
 # Each entry: (module_dotted_name, section_title, members_to_exclude)
 _API_MODULES = [
-    ("torchfoo", "torchfoo", ["distributed", "dist", "ddp"]),
+    ("torchfoo", "torchfoo", ["distributed", "dist", "module"]),
     ("torchfoo.distributed", "torchfoo.distributed", []),
-    ("torchfoo.ddp", "torchfoo.ddp", []),
+    ("torchfoo.module", "torchfoo.module", []),
 ]
 
 

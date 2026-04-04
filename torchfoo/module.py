@@ -1,5 +1,5 @@
 __all__ = [
-    "make_module_ddp",
+    "make_ddp",
 ]
 
 import warnings
@@ -10,7 +10,7 @@ from torch.nn.parallel import DistributedDataParallel
 from . import distributed as tfoodist
 
 
-def make_module_ddp(m: torch.nn.Module):
+def make_ddp(m: torch.nn.Module):
     r"""Wrap a module with DDP and convert BatchNorm to SyncBatchNorm.
 
     Returns the module unchanged if not in distributed mode.

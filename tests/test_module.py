@@ -12,21 +12,21 @@ from torchfoo.distributed.distributed import (
     get_world_size,
     parallelize,
 )
-from torchfoo.ddp import make_module_ddp
+from torchfoo.module import make_ddp
 from torchfoo.utils import current_device
 
 
-class TestMakeModuleDdpNonDistributed:
-    """Tests for make_module_ddp when not in distributed mode."""
+class TestMakeDdpNonDistributed:
+    """Tests for make_ddp when not in distributed mode."""
 
     def test_returns_module_unchanged(self):
         m = torch.nn.Linear(4, 2)
-        result = make_module_ddp(m)
+        result = make_ddp(m)
         assert result is m
 
     def test_batchnorm_not_converted(self):
         m = torch.nn.Sequential(torch.nn.Linear(4, 2), torch.nn.BatchNorm1d(2))
-        result = make_module_ddp(m)
+        result = make_ddp(m)
         assert result is m
         assert isinstance(result[1], torch.nn.BatchNorm1d)
         assert not isinstance(result[1], torch.nn.SyncBatchNorm)
@@ -36,7 +36,7 @@ class TestMakeModuleDdpNonDistributed:
 def _ddp_single(results):
     dev = current_device()
     m = torch.nn.Linear(4, 2).to(dev)
-    wrapped = make_module_ddp(m)
+    wrapped = make_ddp(m)
     results["is_ddp"] = isinstance(
         wrapped, torch.nn.parallel.DistributedDataParallel
     )
@@ -46,7 +46,7 @@ def _ddp_single(results):
 def _ddp_two(results):
     dev = current_device()
     m = torch.nn.Linear(4, 2).to(dev)
-    wrapped = make_module_ddp(m)
+    wrapped = make_ddp(m)
     rank = get_rank()
     results[rank] = {
         "is_ddp": isinstance(
@@ -62,7 +62,7 @@ def _ddp_batchnorm(results):
     m = torch.nn.Sequential(
         torch.nn.Linear(4, 2), torch.nn.BatchNorm1d(2)
     ).to(dev)
-    wrapped = make_module_ddp(m)
+    wrapped = make_ddp(m)
     rank = get_rank()
     results[rank] = {
         "has_sync_bn": isinstance(wrapped.module[1], torch.nn.SyncBatchNorm),
@@ -74,7 +74,7 @@ def _ddp_batchnorm_cpu_warning(results):
     m = torch.nn.Sequential(torch.nn.Linear(4, 2), torch.nn.BatchNorm1d(2))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        make_module_ddp(m)
+        make_ddp(m)
     rank = get_rank()
     results[rank] = {
         "num_warnings": len(w),
@@ -86,7 +86,7 @@ def _ddp_batchnorm_cpu_warning(results):
 def _ddp_weights_synced(results):
     dev = current_device()
     m = torch.nn.Linear(4, 2).to(dev)
-    wrapped = make_module_ddp(m)
+    wrapped = make_ddp(m)
     rank = get_rank()
     results[rank] = {
         "weight": wrapped.module.weight.detach().cpu().tolist(),
@@ -98,7 +98,7 @@ def _ddp_weights_synced(results):
 def _ddp_preserves_parameters(results):
     dev = current_device()
     m = torch.nn.Linear(4, 2).to(dev)
-    wrapped = make_module_ddp(m)
+    wrapped = make_ddp(m)
     rank = get_rank()
     results[rank] = {
         "same_module": wrapped.module is m,
@@ -106,8 +106,8 @@ def _ddp_preserves_parameters(results):
     }
 
 
-class TestMakeModuleDdpSingleProcess:
-    """Tests for make_module_ddp with world_size=1 and force=True."""
+class TestMakeDdpSingleProcess:
+    """Tests for make_ddp with world_size=1 and force=True."""
 
     def teardown_method(self):
         if dist.is_initialized():
@@ -120,8 +120,8 @@ class TestMakeModuleDdpSingleProcess:
         assert results["is_ddp"] is True
 
 
-class TestMakeModuleDdpTwoProcesses:
-    """Tests for make_module_ddp with world_size=2 using @parallelize."""
+class TestMakeDdpTwoProcesses:
+    """Tests for make_ddp with world_size=2 using @parallelize."""
 
     def teardown_method(self):
         if dist.is_initialized():

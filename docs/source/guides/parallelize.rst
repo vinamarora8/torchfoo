@@ -30,14 +30,14 @@ By default, ``@parallelize()`` uses all available GPUs,
 falling back to a single CPU process if no GPUs are found.
 
 Inside the parallelized function, you can use
-:func:`torchfoo.distributed.get_rank`,
-:func:`torchfoo.distributed.get_world_size`,
+:func:`~torchfoo.distributed.get_rank`,
+:func:`~torchfoo.distributed.get_world_size`,
 to query the distributed state, and
-:func:`torchfoo.current_device`
+:func:`~torchfoo.current_device`
 to get the :obj:`torch.device` corresponding to the current process.
-The default :func:`torch.distributed.get_rank` etc. still work, these
-ones are just nicer as they do not fail in non-distributed mode,
-so the same code works for single- and multi-process settings.
+The :func:`torch.distributed.get_rank` etc. from base PyTorch still work,
+these ones are just nicer as they do not fail in non-distributed mode.
+So, the same code works for single- and multi-process settings.
 
 
 Running this script does not require anything special.
@@ -51,7 +51,7 @@ Just call your train script like normal.
 Wrapping a Model with DDP
 --------------------------
 
-Use :func:`~torchfoo.ddp.make_module_ddp` to wrap your model. It converts
+Use :func:`~torchfoo.module.make_ddp` to wrap your model. It converts
 ``BatchNorm`` layers to ``SyncBatchNorm`` and wraps with
 ``DistributedDataParallel`` automatically. It is a no-op outside of distributed
 mode, so the same code works for both single- and multi-GPU runs:
@@ -62,7 +62,7 @@ mode, so the same code works for both single- and multi-GPU runs:
     def train(cfg):
         device = tfoo.current_device()
         model = MyModel().to(device)
-        model = tfoo.ddp.make_module_ddp(model)   # no-op if world_size == 1
+        model = tfoo.module.make_ddp(model)   # no-op if world_size == 1
         ...
 
 Full Example
@@ -85,7 +85,7 @@ Full Example
         device = tfoo.current_device()
 
         model = torch.nn.Linear(128, 10).to(device)
-        model = tfoo.ddp.make_module_ddp(model)
+        model = tfoo.module.make_ddp(model)
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
         for epoch in range(cfg.epochs):
