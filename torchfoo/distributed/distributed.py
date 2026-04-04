@@ -68,6 +68,10 @@ def rank_zero_only(func):
     return wrapper
 
 
+def _should_use_cuda(world_size: int):
+    return torch.cuda.is_available() and torch.cuda.device_count() >= world_size
+
+
 def setup_distributed(
     rank: int,
     world_size: int,
@@ -96,7 +100,7 @@ def setup_distributed(
     import os
 
     if (world_size > 1) or force:
-        use_cuda = torch.cuda.is_available() and torch.cuda.device_count() >= world_size
+        use_cuda = _should_use_cuda(world_size)
 
         if backend == "auto":
             backend = "nccl" if use_cuda else "gloo"
