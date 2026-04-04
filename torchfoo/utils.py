@@ -1,5 +1,6 @@
 __all__ = [
     "seed_everything",
+    "current_device",
 ]
 
 import random
@@ -33,3 +34,10 @@ def seed_everything(seed: int, deterministic: bool = False):
     if deterministic:
         torch.use_deterministic_algorithms(True)
         torch.backends.cudnn.benchmark = False
+
+
+def current_device():
+    if torch.cuda.is_available():
+        return torch.cuda.current_device()
+    else:
+        return torch.device("cpu")
