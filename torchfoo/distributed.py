@@ -7,6 +7,7 @@ __all__ = [
     "all_equal",
     "all_concat_jagged",
     "all_concat",
+    "rank_zero_only",
 ]
 
 import torch
@@ -129,6 +130,27 @@ def all_concat(x: Tensor) -> Tensor:
         Concatenated tensor from all processes along dim 0.
     """
     return _AllConcat.apply(x)
+
+
+def rank_zero_only(func):
+    r"""Decorator that ensures a function only executes on rank 0.
+
+    On all other ranks, the function returns None.
+
+    Args:
+        func: a function to wrap
+
+    Returns:
+        Wrapped function that is a no-op on non-zero ranks.
+    """
+    rank = get_rank()
+
+    def wrapper(*args, **kwargs):
+        if rank != 0:
+            return
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 # Inspired by:
