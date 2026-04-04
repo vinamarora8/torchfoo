@@ -38,6 +38,7 @@ autodoc_default_options = {
 }
 
 html_theme = "pydata_sphinx_theme"
+html_show_sourcelink = False
 html_theme_options = {
     "show_toc_level": 2,
     "icon_links": [
