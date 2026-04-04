@@ -194,8 +194,14 @@ def parallelize(
         def wrapper(*args, **kwargs):
             import torch.multiprocessing as mp
 
-            wsize = world_size if world_size is not None else torch.cuda.device_count()
-            wsize = max(wsize, 1)
+            if world_size is not None:
+                wsize = world_size
+                assert wsize > 0, "world_size must be >= 1"
+            elif torch.cuda.is_available():
+                wsize = torch.cuda.device_count()
+            else:
+                wsize = 1
+
             port = master_port if master_port is not None else _get_open_port()
 
             spawn_args = (
