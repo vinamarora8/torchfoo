@@ -14,14 +14,6 @@ import torch
 import torch.distributed as dist
 
 
-class _DistributedState:
-    initialized: bool = False
-    use_cuda: bool = False
-
-
-_distributed_state = _DistributedState()
-
-
 def is_distributed() -> bool:
     r"""Check if distributed mode is initialized
 
@@ -76,8 +68,16 @@ def rank_zero_only(func):
     return wrapper
 
 
-def _should_use_cuda(world_size: int):
-    return torch.cuda.is_available() and torch.cuda.device_count() >= world_size
+class _DistributedState:
+    """torchfoo's internal distributed setup state"""
+
+    initialized: bool = False
+    """True iff setup_distributed() ran and did not skip creating process group"""
+    use_cuda: bool = False
+    """True iff cuda is available, and has enough GPUs given the world_size"""
+
+
+_distributed_state = _DistributedState()
 
 
 def setup_distributed(
@@ -107,14 +107,12 @@ def setup_distributed(
     """
     import os
 
+    if _distributed_state.initialized:
+        raise RuntimeError("A distributed process group has already been initialized.")
+
+    use_cuda = torch.cuda.is_available() and torch.cuda.device_count() >= world_size
+
     if (world_size > 1) or force:
-        if _distributed_state.initialized:
-            raise RuntimeError(
-                "A distributed process group has already been initialized."
-            )
-
-        use_cuda = _should_use_cuda(world_size)
-
         if backend == "auto":
             backend = "nccl" if use_cuda else "gloo"
 
@@ -142,14 +140,12 @@ def setup_distributed(
         dist.init_process_group(**init_kwargs)  # ty:ignore[invalid-argument-type]
 
         _distributed_state.initialized = True
-        _distributed_state.use_cuda = use_cuda
-
-        return True
     else:
         logging.info("Skipping distributed setup")
-        _distributed_state.use_cuda = torch.cuda.is_available()
 
-        return False
+    _distributed_state.use_cuda = use_cuda
+
+    return _distributed_state.initialized
 
 
 def cleanup_distributed():
