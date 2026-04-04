@@ -2,13 +2,13 @@ import torchfoo
 
 
 class TestVersion:
-    def test_version_is_string():
+    def test_version_is_string(self):
         assert isinstance(torchfoo.__version__, str)
 
-    def test_version_is_not_unknown():
+    def test_version_is_not_unknown(self):
         assert torchfoo.__version__ != "unknown"
 
-    def test_version_format():
+    def test_version_format(self):
         parts = torchfoo.__version__.split(".")
         assert len(parts) >= 2
-        assert all(p.isdigit() for p in parts)
+        assert parts[0].isdigit() and parts[1].isdigit()
