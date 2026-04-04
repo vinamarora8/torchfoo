@@ -1,13 +1,13 @@
-Distributed Training Setup with ``@parallelize``
-================================================
+Distributed Training Setup with ``torchfoo``
+============================================
+
+Spawning Parallel Processes
+---------------------------
 
 The :func:`~torchfoo.distributed.parallelize` decorator is the simplest way to
 run a training function across multiple GPUs/CPUs. It handles process spawning,
 distributed setup, and cleanup automatically — you only write the single-process
 logic.
-
-Basic Usage
------------
 
 Decorate your training function and call it normally from the main process:
 
@@ -21,11 +21,7 @@ Decorate your training function and call it normally from the main process:
         world_size = tfoo.dist.get_world_size()
         device = tfoo.current_device()
 
-        model = MyModel().to(device)
-        model = tfoo.ddp.make_module_ddp(model)
-
-        for batch in dataloader:
-            ...
+        ...
 
     if __name__ == "__main__":
         train(cfg)
@@ -33,44 +29,24 @@ Decorate your training function and call it normally from the main process:
 By default, ``@parallelize()`` uses all available GPUs,
 falling back to a single CPU process if no GPUs are found.
 
-Controlling World Size
-----------------------
+Inside the parallelized function, you can use
+:func:`torchfoo.distributed.get_rank`,
+:func:`torchfoo.distributed.get_world_size`,
+to query the distributed state, and
+:func:`torchfoo.current_device`
+to get the :obj:`torch.device` corresponding to the current process.
+The default :func:`torch.distributed.get_rank` etc. still work, these
+ones are just nicer as they do not fail in non-distributed mode,
+so the same code works for single- and multi-process settings.
 
-Pass ``world_size`` to use a specific number of processes:
 
-.. code-block:: python
+Running this script does not require anything special.
+Just call your train script like normal.
 
-    @tfoo.dist.parallelize(world_size=2)
-    def train(cfg):
-        ...
+.. code-block:: bash
 
-If ``world_size`` exceeds the number of available GPUs, the ``gloo`` backend is
-used automatically and all processes run on CPU.
+    python <script>.py
 
-Querying Distributed State
---------------------------
-
-Inside the decorated function, use :func:`~torchfoo.distributed.get_rank` and
-:func:`~torchfoo.distributed.get_world_size` to query the current process:
-
-.. code-block:: python
-
-    @tfoo.dist.parallelize()
-    def train(cfg):
-        rank = tfoo.dist.get_rank()          # 0 .. world_size-1
-        world_size = tfoo.dist.get_world_size()
-
-        if rank == 0:
-            print(f"Training on {world_size} GPUs")
-
-For rank-0-only side effects (logging, saving checkpoints), use the
-:func:`~torchfoo.distributed.rank_zero_only` decorator:
-
-.. code-block:: python
-
-    @tfoo.dist.rank_zero_only
-    def save_checkpoint(model, path):
-        torch.save(model.state_dict(), path)
 
 Wrapping a Model with DDP
 --------------------------
@@ -120,3 +96,21 @@ Full Example
 
     if __name__ == "__main__":
         train(Config())
+
+Extras
+------
+
+Controlling World Size with ``@parallelize``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pass ``world_size`` to use a specific number of processes:
+
+.. code-block:: python
+
+    @tfoo.dist.parallelize(world_size=2)
+    def train(cfg):
+        ...
+
+If ``world_size`` exceeds the number of available GPUs, the ``gloo`` backend is
+used automatically and all processes run on CPU.
+
