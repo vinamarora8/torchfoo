@@ -19,6 +19,7 @@ extensions = [
 ]
 
 autosummary_generate = ["api"]
+autodoc_typehints = "description"
 autodoc_default_options = {
     "members": True,
     "undoc-members": False,
