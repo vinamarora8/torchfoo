@@ -62,6 +62,7 @@ def _build_api_rst(app):
     import importlib
     import pathlib
 
+    src = pathlib.Path(app.srcdir)
     lines = ["API Reference", "=============", ""]
     for mod_name, title, exclude in _API_MODULES:
         mod = importlib.import_module(mod_name)
@@ -73,12 +74,13 @@ def _build_api_rst(app):
             ".. autosummary::",
             "   :toctree: generated",
             "   :nosignatures:",
+            f"   :caption: {title}",
             "",
         ]
         for m in members:
             lines.append(f"   ~{mod_name}.{m}")
         lines.append("")
-    pathlib.Path(app.srcdir).joinpath("api.rst").write_text("\n".join(lines))
+    src.joinpath("api.rst").write_text("\n".join(lines))
 
 
 def setup(app):
