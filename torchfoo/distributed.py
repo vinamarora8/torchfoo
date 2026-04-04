@@ -163,7 +163,7 @@ def setup_distributed(
     world_size: int,
     master_addr: str | None = None,
     master_port: str | int | None = None,
-    backend: str = "nccl",
+    backend: str = "auto",
     force: bool = False,
 ):
     r"""Initialize a distributed process group.
@@ -175,12 +175,16 @@ def setup_distributed(
         world_size: total number of processes
         master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
         master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
-        backend: distributed backend to use (default: "nccl")
+        backend: distributed backend (default: "auto"). "auto" selects "nccl" if
+            CUDA is available, "gloo" otherwise.
         force: if True, initialize even when world_size is 1
     """
     import os
 
     if (world_size > 1) or force:
+        if backend == "auto":
+            backend = "nccl" if torch.cuda.is_available() else "gloo"
+
         if master_addr is None:
             master_addr = os.environ.get("MASTER_ADDR", None)
         if master_addr is None:
@@ -229,7 +233,7 @@ def parallelize(
     num_gpus: int | None = None,
     master_addr: str | None = None,
     master_port: str | int | None = None,
-    backend: str = "nccl",
+    backend: str = "auto",
 ):
     r"""Decorator that parallelizes a function across multiple GPUs with distributed setup.
 
@@ -243,7 +247,8 @@ def parallelize(
         num_gpus: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
         master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
         master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
-        backend: distributed backend to use (default: "nccl")
+        backend: distributed backend (default: "auto"). "auto" selects "nccl" if
+            CUDA is available, "gloo" otherwise.
 
     Examples::
 
