@@ -244,7 +244,7 @@ def _parallelize_worker(
     # This is needed to get around the problem with pickle not being able to work with
     # local functions
     func = wrapper.__wrapped__
-    setup_distributed(
+    spawned = setup_distributed(
         rank,
         world_size,
         master_addr=master_addr,
@@ -253,6 +253,8 @@ def _parallelize_worker(
         force=force,
     )
     try:
+        if spawned and _should_use_cuda(world_size):
+            torch.cuda.set_device(rank)
         func(*args, **kwargs)
     finally:
         cleanup_distributed()
