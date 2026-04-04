@@ -4,7 +4,7 @@ A collection of utilities for PyTorch
 
 ## Installation
 
-Requires Python >= 3.10 and PyTorch >= 2.7.0.
+Requires Python >= 3.10 and PyTorch >= 2.4.0.
 
 ```bash
 pip install torchfoo
