@@ -14,7 +14,7 @@ from .distributed import get_world_size, get_rank
 
 
 def all_reduce_(x: Tensor) -> Tensor:
-    r"""Perform an in-place backprop-able "all reduce" operation
+    r"""Perform an in-place differentiable "all reduce" operation
 
     Args:
         x: a contiguous Tensor on this device
@@ -29,7 +29,7 @@ def all_reduce_(x: Tensor) -> Tensor:
 
 
 def all_reduce_sum_(x: Tensor) -> Tensor:
-    r"""Perform an in-place backprop-able "all reduce sum" operation
+    r"""Perform an in-place differentiable "all reduce sum" operation
 
     Args:
         x: a contiguous Tensor on this device
