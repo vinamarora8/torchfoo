@@ -10,6 +10,7 @@ __all__ = [
     "rank_zero_only",
     "setup_distributed",
     "cleanup_distributed",
+    "distributed",
 ]
 
 import logging
@@ -222,6 +223,57 @@ def _get_open_port() -> int:
         s.bind(("", 0))
         s.listen(1)
         return s.getsockname()[1]
+
+
+def distributed(num_gpus: int | None = None):
+    r"""Decorator that launches a function across multiple GPUs.
+
+    Rank 0 runs in the main process; ranks 1..N-1 are spawned.
+    The decorated function must accept ``rank`` and ``world_size`` as its
+    first two arguments.
+
+    Args:
+        num_gpus: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
+
+    Examples::
+
+        @distributed()
+        def train(rank, world_size, cfg):
+            setup_distributed(rank, world_size)
+            ...
+
+        train(cfg)
+
+    If you use Hydra, then ``@distributed`` must be the inner decorator::
+
+        @hydra.main(version_base="1.2", config_path="./configs", config_name="train.yaml")
+        @distributed()
+        def train(rank, world_size, cfg: DictConfig):
+            setup_distributed(rank, world_size)
+            ...
+
+        train()  # hydra passes cfg -> distributed prepends rank, world_size
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            import torch.multiprocessing as mp
+
+            ngpus = num_gpus if num_gpus is not None else torch.cuda.device_count()
+            ngpus = max(ngpus, 1)
+
+            if ngpus > 1:
+                mp.set_start_method("spawn", force=True)
+                for rank in range(1, ngpus):
+                    mp.Process(
+                        target=func, args=(rank, ngpus, *args), kwargs=kwargs
+                    ).start()
+
+            func(0, ngpus, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 # Inspired by:
