@@ -10,7 +10,7 @@ __all__ = [
     "rank_zero_only",
     "setup_distributed",
     "cleanup_distributed",
-    "distributed",
+    "parallelize",
 ]
 
 import logging
@@ -225,19 +225,19 @@ def _get_open_port() -> int:
         return s.getsockname()[1]
 
 
-def distributed(
+def parallelize(
     num_gpus: int | None = None,
     master_addr: str | None = None,
     master_port: str | int | None = None,
     backend: str = "nccl",
 ):
-    r"""Decorator that launches a function across multiple GPUs with distributed setup.
+    r"""Decorator that parallelizes a function across multiple GPUs with distributed setup.
 
     Handles process spawning, ``setup_distributed``, and ``cleanup_distributed``
     automatically. Rank 0 runs in the main process; ranks 1..N-1 are spawned.
 
-    The decorated function receives ``rank`` and ``world_size`` as its first two
-    arguments.
+    Use ``get_rank()`` and ``get_world_size()`` inside the decorated function
+    to query distributed state.
 
     Args:
         num_gpus: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
@@ -247,20 +247,24 @@ def distributed(
 
     Examples::
 
-        @distributed()
-        def train(rank, world_size, cfg):
+        import torchfoo as tfo
+
+        @tfo.dist.parallelize()
+        def train(cfg):
+            rank = tfo.dist.get_rank()
+            world_size = tfo.dist.get_world_size()
             ...
 
         train(cfg)
 
-    If you use Hydra, then ``@distributed`` must be the inner decorator::
+    If you use Hydra, then ``@parallelize`` must be the inner decorator::
 
         @hydra.main(version_base="1.2", config_path="./configs", config_name="train.yaml")
-        @distributed()
-        def train(rank, world_size, cfg: DictConfig):
+        @tfo.dist.parallelize()
+        def train(cfg: DictConfig):
             ...
 
-        train()  # hydra passes cfg -> distributed prepends rank, world_size
+        train()
     """
 
     def decorator(func):
@@ -273,7 +277,7 @@ def distributed(
                 backend=backend,
             )
             try:
-                func(rank, world_size, *args, **kwargs)
+                func(*args, **kwargs)
             finally:
                 cleanup_distributed()
 
