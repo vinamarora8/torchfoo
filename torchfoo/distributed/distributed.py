@@ -191,6 +191,8 @@ def parallelize(
                 master_port=master_port,
                 backend=backend,
             )
+            if torch.cuda.is_available():
+                torch.cuda.set_device(rank)
             try:
                 func(*args, **kwargs)
             finally:
