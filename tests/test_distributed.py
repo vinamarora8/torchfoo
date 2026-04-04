@@ -15,7 +15,7 @@ from torchfoo.distributed.distributed import (
 )
 
 
-@parallelize(num_gpus=2)
+@parallelize(world_size=2)
 def _parallelize_test_fn(results_dict):
     rank = get_rank()
     results_dict[rank] = {
@@ -176,7 +176,7 @@ class TestSingleParallelize:
     def test_single_process_runs_function(self):
         results = []
 
-        @parallelize(num_gpus=1)
+        @parallelize(world_size=1)
         def fn():
             results.append(get_rank())
 
@@ -187,7 +187,7 @@ class TestSingleParallelize:
     def test_passes_args(self):
         results = []
 
-        @parallelize(num_gpus=1, backend="auto")
+        @parallelize(world_size=1, backend="auto")
         def fn(a, b):
             results.append(a + b)
 
@@ -198,7 +198,7 @@ class TestSingleParallelize:
     def test_passes_kwargs(self):
         results = []
 
-        @parallelize(num_gpus=1, backend="auto")
+        @parallelize(world_size=1, backend="auto")
         def fn(a, b=10):
             results.append(a + b)
 
@@ -207,7 +207,7 @@ class TestSingleParallelize:
         assert results == [21]
 
     def test_cleanup_after_success(self):
-        @parallelize(num_gpus=1, backend="auto")
+        @parallelize(world_size=1, backend="auto")
         def fn():
             pass  # world_size=1 skips distributed setup
 
@@ -216,7 +216,7 @@ class TestSingleParallelize:
         assert not is_distributed()
 
     def test_cleanup_after_exception(self):
-        @parallelize(num_gpus=1, backend="auto")
+        @parallelize(world_size=1, backend="auto")
         def fn():
             raise ValueError("test error")
 

@@ -145,7 +145,7 @@ def _get_open_port() -> int:
 
 
 def parallelize(
-    num_gpus: int | None = None,
+    world_size: int | None = None,
     master_addr: str | None = None,
     master_port: str | int | None = None,
     backend: str = "auto",
@@ -159,7 +159,7 @@ def parallelize(
     to query distributed state.
 
     Args:
-        num_gpus: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
+        world_size: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
         master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
         master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
         backend: distributed backend (default: "auto"). "auto" selects "nccl" if
@@ -194,31 +194,13 @@ def parallelize(
         def wrapper(*args, **kwargs):
             import torch.multiprocessing as mp
 
-            ngpus = num_gpus if num_gpus is not None else torch.cuda.device_count()
-            ngpus = max(ngpus, 1)
+            wsize = world_size if world_size is not None else torch.cuda.device_count()
+            wsize = max(wsize, 1)
             port = master_port if master_port is not None else _get_open_port()
 
-            if ngpus > 1:
-                ctx = mp.get_context("spawn")
-                for rank in range(1, ngpus):
-                    ctx.Process(
-                        target=_parallelize_worker,
-                        args=(
-                            rank,
-                            wrapper,
-                            ngpus,
-                            master_addr,
-                            port,
-                            backend,
-                            args,
-                            kwargs,
-                        ),
-                    ).start()
-
-            _parallelize_worker(
-                0,
+            spawn_args = (
                 wrapper,
-                ngpus,
+                wsize,
                 master_addr,
                 port,
                 backend,
@@ -226,16 +208,21 @@ def parallelize(
                 kwargs,
             )
 
+            if wsize > 1:
+                mp.spawn(_parallelize_worker, args=spawn_args, nprocs=wsize, join=True)
+            else:
+                _parallelize_worker(0, *spawn_args)
+
         return wrapper
 
     return decorator
 
 
 def _parallelize_worker(
-    rank, wrapped_fn, world_size, master_addr, master_port, backend, args, kwargs
+    rank, wrapper, world_size, master_addr, master_port, backend, args, kwargs
 ):
     # wrapped_fn is the @parallelize wrapper; __wrapped__ is the original function
-    func = wrapped_fn.__wrapped__
+    func = wrapper.__wrapped__
     setup_distributed(
         rank,
         world_size,
