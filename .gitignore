@@ -13,3 +13,4 @@ outputs
 memory
 docs/_build
 docs/generated
+docs/api.rst

@@ -30,3 +30,38 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "torch": ("https://pytorch.org/docs/stable", None),
 }
+
+# Modules to include in API reference.
+# Each entry: (module_dotted_name, section_title, members_to_exclude)
+_API_MODULES = [
+    ("torchfoo", "torchfoo", ["distributed", "dist", "ddp"]),
+    ("torchfoo.distributed", "torchfoo.distributed", []),
+    ("torchfoo.ddp", "torchfoo.ddp", []),
+]
+
+
+def _build_api_rst(app):
+    import importlib
+    import pathlib
+
+    lines = ["API Reference", "=============", ""]
+    for mod_name, title, exclude in _API_MODULES:
+        mod = importlib.import_module(mod_name)
+        members = [m for m in (getattr(mod, "__all__", []) or []) if m not in exclude]
+        lines += [
+            title,
+            "-" * len(title),
+            "",
+            ".. autosummary::",
+            "   :toctree: generated",
+            "   :nosignatures:",
+            "",
+        ]
+        for m in members:
+            lines.append(f"   ~{mod_name}.{m}")
+        lines.append("")
+    pathlib.Path(app.srcdir).joinpath("api.rst").write_text("\n".join(lines))
+
+
+def setup(app):
+    app.connect("builder-inited", _build_api_rst, priority=100)
