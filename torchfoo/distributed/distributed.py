@@ -192,6 +192,7 @@ def parallelize(
 
             ngpus = num_gpus if num_gpus is not None else torch.cuda.device_count()
             ngpus = max(ngpus, 1)
+            port = master_port if master_port is not None else _get_open_port()
 
             if ngpus > 1:
                 mp.spawn(
@@ -200,7 +201,7 @@ def parallelize(
                         wrapper,
                         ngpus,
                         master_addr,
-                        master_port,
+                        port,
                         backend,
                         args,
                         kwargs,
@@ -214,7 +215,7 @@ def parallelize(
                     wrapper,
                     ngpus,
                     master_addr,
-                    master_port,
+                    port,
                     backend,
                     args,
                     kwargs,

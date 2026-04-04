@@ -15,7 +15,7 @@ from torchfoo.distributed.distributed import (
 )
 
 
-@parallelize(num_gpus=2, backend="gloo")
+@parallelize(num_gpus=2)
 def _parallelize_test_fn(results_dict):
     rank = get_rank()
     results_dict[rank] = {
@@ -32,7 +32,7 @@ def _worker_setup_cleanup(rank, world_size, port, results):
         world_size=world_size,
         master_addr="127.0.0.1",
         master_port=port,
-        backend="gloo",
+        backend="auto",
     )
     results[rank] = {
         "is_distributed": is_distributed(),
@@ -76,7 +76,7 @@ class TestSetupCleanup:
             dist.destroy_process_group()
 
     def test_setup_and_cleanup(self):
-        setup_distributed(rank=0, world_size=1, backend="gloo", force=True)
+        setup_distributed(rank=0, world_size=1, backend="auto", force=True)
 
         assert is_distributed()
         assert get_world_size() == 1
@@ -87,11 +87,11 @@ class TestSetupCleanup:
         assert not is_distributed()
 
     def test_setup_skipped_when_world_size_1(self):
-        setup_distributed(rank=0, world_size=1, backend="gloo")
+        setup_distributed(rank=0, world_size=1, backend="auto")
         assert not is_distributed()
 
     def test_setup_force_with_world_size_1(self):
-        setup_distributed(rank=0, world_size=1, backend="gloo", force=True)
+        setup_distributed(rank=0, world_size=1, backend="auto", force=True)
         assert is_distributed()
 
     def test_cleanup_noop_when_not_initialized(self):
@@ -112,7 +112,7 @@ class TestSetupCleanup:
             world_size=1,
             master_addr="127.0.0.1",
             master_port=port,
-            backend="gloo",
+            backend="auto",
             force=True,
         )
         assert is_distributed()
@@ -130,15 +130,12 @@ class TestMultiProcess:
         manager = mp.Manager()
         results = manager.dict()
 
-        procs = []
-        for rank in range(2):
-            p = mp.Process(target=_worker_setup_cleanup, args=(rank, 2, port, results))
-            p.start()
-            procs.append(p)
-
-        for p in procs:
-            p.join(timeout=10)
-            assert p.exitcode == 0
+        mp.spawn(
+            _worker_setup_cleanup,
+            args=(2, port, results),
+            nprocs=2,
+            join=True,
+        )
 
         for rank in range(2):
             assert results[rank]["is_distributed"] is True
@@ -168,7 +165,7 @@ class TestSingleParallelize:
     def test_single_process_runs_function(self):
         results = []
 
-        @parallelize(num_gpus=1, backend="gloo")
+        @parallelize(num_gpus=1, backend="auto")
         def fn():
             results.append(get_rank())
 
@@ -179,7 +176,7 @@ class TestSingleParallelize:
     def test_passes_args(self):
         results = []
 
-        @parallelize(num_gpus=1, backend="gloo")
+        @parallelize(num_gpus=1, backend="auto")
         def fn(a, b):
             results.append(a + b)
 
@@ -190,7 +187,7 @@ class TestSingleParallelize:
     def test_passes_kwargs(self):
         results = []
 
-        @parallelize(num_gpus=1, backend="gloo")
+        @parallelize(num_gpus=1, backend="auto")
         def fn(a, b=10):
             results.append(a + b)
 
@@ -199,7 +196,7 @@ class TestSingleParallelize:
         assert results == [21]
 
     def test_cleanup_after_success(self):
-        @parallelize(num_gpus=1, backend="gloo")
+        @parallelize(num_gpus=1, backend="auto")
         def fn():
             pass  # world_size=1 skips distributed setup
 
@@ -208,7 +205,7 @@ class TestSingleParallelize:
         assert not is_distributed()
 
     def test_cleanup_after_exception(self):
-        @parallelize(num_gpus=1, backend="gloo")
+        @parallelize(num_gpus=1, backend="auto")
         def fn():
             raise ValueError("test error")
 
