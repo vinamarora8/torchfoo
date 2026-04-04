@@ -225,21 +225,30 @@ def _get_open_port() -> int:
         return s.getsockname()[1]
 
 
-def distributed(num_gpus: int | None = None):
-    r"""Decorator that launches a function across multiple GPUs.
+def distributed(
+    num_gpus: int | None = None,
+    master_addr: str | None = None,
+    master_port: str | int | None = None,
+    backend: str = "nccl",
+):
+    r"""Decorator that launches a function across multiple GPUs with distributed setup.
 
-    Rank 0 runs in the main process; ranks 1..N-1 are spawned.
-    The decorated function must accept ``rank`` and ``world_size`` as its
-    first two arguments.
+    Handles process spawning, ``setup_distributed``, and ``cleanup_distributed``
+    automatically. Rank 0 runs in the main process; ranks 1..N-1 are spawned.
+
+    The decorated function receives ``rank`` and ``world_size`` as its first two
+    arguments.
 
     Args:
         num_gpus: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
+        master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
+        master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
+        backend: distributed backend to use (default: "nccl")
 
     Examples::
 
         @distributed()
         def train(rank, world_size, cfg):
-            setup_distributed(rank, world_size)
             ...
 
         train(cfg)
@@ -249,13 +258,25 @@ def distributed(num_gpus: int | None = None):
         @hydra.main(version_base="1.2", config_path="./configs", config_name="train.yaml")
         @distributed()
         def train(rank, world_size, cfg: DictConfig):
-            setup_distributed(rank, world_size)
             ...
 
         train()  # hydra passes cfg -> distributed prepends rank, world_size
     """
 
     def decorator(func):
+        def _worker(rank, world_size, *args, **kwargs):
+            setup_distributed(
+                rank,
+                world_size,
+                master_addr=master_addr,
+                master_port=master_port,
+                backend=backend,
+            )
+            try:
+                func(rank, world_size, *args, **kwargs)
+            finally:
+                cleanup_distributed()
+
         def wrapper(*args, **kwargs):
             import torch.multiprocessing as mp
 
@@ -266,10 +287,10 @@ def distributed(num_gpus: int | None = None):
                 mp.set_start_method("spawn", force=True)
                 for rank in range(1, ngpus):
                     mp.Process(
-                        target=func, args=(rank, ngpus, *args), kwargs=kwargs
+                        target=_worker, args=(rank, ngpus, *args), kwargs=kwargs
                     ).start()
 
-            func(0, ngpus, *args, **kwargs)
+            _worker(0, ngpus, *args, **kwargs)
 
         return wrapper
 
