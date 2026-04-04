@@ -1,8 +1,8 @@
-Distributed Training with ``@parallelize``
-==========================================
+Distributed Training Setup with ``@parallelize``
+================================================
 
 The :func:`~torchfoo.distributed.parallelize` decorator is the simplest way to
-run a training function across multiple GPUs. It handles process spawning,
+run a training function across multiple GPUs/CPUs. It handles process spawning,
 distributed setup, and cleanup automatically — you only write the single-process
 logic.
 
