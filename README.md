@@ -1,3 +1,21 @@
 # torchfoo
 
 A collection of utilities for PyTorch
+
+## Installation
+
+Requires Python >= 3.10 and PyTorch >= 2.7.0.
+
+```bash
+pip install torchfoo
+```
+
+### Development
+
+```bash
+git clone https://github.com/vinamarora8/torchfoo.git
+cd torchfoo
+python -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+```
