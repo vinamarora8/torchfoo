@@ -149,6 +149,7 @@ def parallelize(
     master_addr: str | None = None,
     master_port: str | int | None = None,
     backend: str = "auto",
+    force: bool = False,
 ):
     r"""Decorator that parallelizes a function across multiple GPUs with distributed setup.
 
@@ -164,6 +165,7 @@ def parallelize(
         master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
         backend: distributed backend (default: "auto"). "auto" selects "nccl" if
             CUDA is available, "gloo" otherwise.
+        force: Force distributed even if detected world_size is 1 (default ``False``)
 
     Examples::
 
@@ -210,11 +212,12 @@ def parallelize(
                 master_addr,
                 port,
                 backend,
+                force,
                 args,
                 kwargs,
             )
 
-            if wsize > 1:
+            if wsize > 1 or force:
                 mp.spawn(_parallelize_worker, args=spawn_args, nprocs=wsize, join=True)
             else:
                 _parallelize_worker(0, *spawn_args)
@@ -225,7 +228,15 @@ def parallelize(
 
 
 def _parallelize_worker(
-    rank, wrapper, world_size, master_addr, master_port, backend, args, kwargs
+    rank,
+    wrapper,
+    world_size,
+    master_addr,
+    master_port,
+    backend,
+    force,
+    args,
+    kwargs,
 ):
     # wrapped_fn is the @parallelize wrapper; __wrapped__ is the original function
     func = wrapper.__wrapped__
@@ -235,6 +246,7 @@ def _parallelize_worker(
         master_addr=master_addr,
         master_port=master_port,
         backend=backend,
+        force=force,
     )
     try:
         func(*args, **kwargs)
