@@ -84,7 +84,7 @@ def setup_distributed(
         rank: rank of the current process
         world_size: total number of processes
         master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
-        master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
+        master_port: port of the master node. Falls back to MASTER_PORT env var.
         backend: distributed backend (default: "auto"). "auto" selects "nccl" if
             CUDA is available and there are enough GPUs for the world_size,
             "gloo" otherwise.
@@ -105,8 +105,12 @@ def setup_distributed(
 
         if master_port is None:
             master_port = os.environ.get("MASTER_PORT", None)
+
         if master_port is None:
-            master_port = _get_open_port()
+            raise ValueError(
+                "Either master_port must be provided "
+                "or MASTER_PORT must be set in env"
+            )
 
         logging.info(f"DDP MASTER_ADDR {master_addr}, MASTER_PORT {master_port}")
 

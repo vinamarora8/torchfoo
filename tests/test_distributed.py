@@ -69,12 +69,19 @@ class TestGetOpenPort:
 class TestSetupCleanup:
     """Tests for setup/cleanup using gloo backend on CPU (single process)."""
 
+    def setup_method(self, method):
+        """Executed before every test method."""
+        import os
+
+        os.environ.pop("MASTER_PORT", None)
+
     def teardown_method(self):
         if dist.is_initialized():
             dist.destroy_process_group()
 
     def test_setup_and_cleanup(self):
-        setup_distributed(rank=0, world_size=1, force=True)
+        port = _get_open_port()
+        setup_distributed(rank=0, world_size=1, master_port=port, force=True)
 
         assert is_distributed()
         assert get_world_size() == 1
@@ -85,12 +92,19 @@ class TestSetupCleanup:
         assert not is_distributed()
 
     def test_setup_skipped_when_world_size_1(self):
-        setup_distributed(rank=0, world_size=1)
+        port = _get_open_port()
+        setup_distributed(rank=0, world_size=1, master_port=port)
         assert not is_distributed()
 
     def test_setup_force_with_world_size_1(self):
-        setup_distributed(rank=0, world_size=1, force=True)
+        port = _get_open_port()
+        setup_distributed(rank=0, world_size=1, force=True, master_port=port)
         assert is_distributed()
+
+    def test_setup_force_fails_without_port(self):
+        with pytest.raises(ValueError):
+            setup_distributed(rank=0, world_size=1, force=True)
+        assert not is_distributed()
 
     def test_cleanup_noop_when_not_initialized(self):
         assert not is_distributed()
