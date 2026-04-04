@@ -16,9 +16,12 @@ for _mod in [
 ]:
     sys.modules[_mod] = MagicMock()
 
+import torchfoo
+
 project = "torchfoo"
 author = "Vinam Arora"
-copyright = f"2025, {author}"
+copyright = f"2026, {author}"
+version = torchfoo.__version__
 
 extensions = [
     "sphinx.ext.autodoc",
