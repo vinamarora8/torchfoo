@@ -40,6 +40,18 @@ autodoc_default_options = {
 html_theme = "pydata_sphinx_theme"
 html_theme_options = {
     "show_toc_level": 2,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/vinamarora8/torchfoo",
+            "icon": "fa-brands fa-github",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/torchfoo/",
+            "icon": "fa-brands fa-python",
+        },
+    ],
 }
 
 intersphinx_mapping = {
