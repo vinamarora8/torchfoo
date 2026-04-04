@@ -8,7 +8,11 @@ __all__ = [
     "all_concat_jagged",
     "all_concat",
     "rank_zero_only",
+    "setup_distributed",
+    "cleanup_distributed",
 ]
+
+import logging
 
 import torch
 from torch import Tensor
@@ -151,6 +155,73 @@ def rank_zero_only(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def setup_distributed(
+    rank: int,
+    world_size: int,
+    master_addr: str | None = None,
+    master_port: str | int | None = None,
+    backend: str = "nccl",
+    force: bool = False,
+):
+    r"""Initialize a distributed process group.
+
+    If world_size is 1 and force is False, setup is skipped.
+
+    Args:
+        rank: rank of the current process
+        world_size: total number of processes
+        master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
+        master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
+        backend: distributed backend to use (default: "nccl")
+        force: if True, initialize even when world_size is 1
+    """
+    import os
+
+    if (world_size > 1) or force:
+        if master_addr is None:
+            master_addr = os.environ.get("MASTER_ADDR", None)
+        if master_addr is None:
+            master_addr = "localhost"
+
+        if master_port is None:
+            master_port = os.environ.get("MASTER_PORT", None)
+        if master_port is None:
+            master_port = _get_open_port()
+
+        logging.info(f"DDP MASTER_ADDR {master_addr}, MASTER_PORT {master_port}")
+
+        os.environ["MASTER_ADDR"] = str(master_addr)
+        os.environ["MASTER_PORT"] = str(master_port)
+        dist.init_process_group(
+            backend=backend,
+            rank=rank,
+            world_size=world_size,
+            device_id=torch.device(rank),
+        )
+    else:
+        logging.info("Skipping distributed setup")
+
+
+def cleanup_distributed():
+    r"""Destroy the distributed process group if one is initialized."""
+    if dist.is_initialized():
+        dist.destroy_process_group()
+
+
+def _get_open_port() -> int:
+    r"""Find an available port on the system.
+
+    Returns:
+        An available port number.
+    """
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        s.listen(1)
+        return s.getsockname()[1]
 
 
 # Inspired by:
