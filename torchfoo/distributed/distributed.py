@@ -177,20 +177,22 @@ def parallelize(
     backend: str = "auto",
     force: bool = False,
 ):
-    r"""Decorator that parallelizes a function across multiple GPUs with distributed setup.
+    r"""Decorator that parallelizes a function across multiple devices with distributed setup.
 
     Handles process spawning, ``setup_distributed``, and ``cleanup_distributed``
-    automatically. Rank 0 runs in the main process; ranks 1..N-1 are spawned.
+    automatically.
 
     Use ``get_rank()`` and ``get_world_size()`` inside the decorated function
     to query distributed state.
 
+
     Args:
-        world_size: number of GPUs to use. Defaults to ``torch.cuda.device_count()``.
+        world_size: number of devices to use. Defaults to ``max(torch.cuda.device_count(), 1)``.
+            If greater than the number of CUDA GPUs available, CPUs are used instead.
         master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
         master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
         backend: distributed backend (default: "auto"). "auto" selects "nccl" if
-            CUDA is available, "gloo" otherwise.
+            enough CUDA GPUs are available for ``world_size``, "gloo" otherwise.
         force: Force distributed even if detected world_size is 1 (default ``False``)
 
     Examples::
