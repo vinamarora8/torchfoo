@@ -4,7 +4,7 @@ torchfoo
 A collection of general utilities for PyTorch.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    guides/index.rst
 
