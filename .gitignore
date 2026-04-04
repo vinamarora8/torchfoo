@@ -10,3 +10,4 @@ wheels/
 .venv
 CLAUDE.md
 outputs
+memory
