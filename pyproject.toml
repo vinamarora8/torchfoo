@@ -18,8 +18,16 @@ license = "MIT"
 license-files = ["LICEN[CS]E.*"]
 
 
+[tool.setuptools.packages.find]
+include = ["torchfoo*"]
+
 [project.optional-dependencies]
 dev = [
+    "numpy",
     "pytest",
     "black==24.2.0",
+]
+docs = [
+    "sphinx",
+    "pydata-sphinx-theme",
 ]

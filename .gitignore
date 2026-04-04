@@ -11,3 +11,5 @@ wheels/
 CLAUDE.md
 outputs
 memory
+docs/_build
+docs/generated
