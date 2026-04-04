@@ -126,13 +126,19 @@ class _AllConcat(torch.autograd.Function):
 class _AllReduceSum(torch.autograd.Function):
 
     @staticmethod
-    def forward(_ctx, x: Tensor):
-        if get_world_size() > 1:
+    def forward(ctx, x: Tensor):
+        n = get_world_size()
+        ctx.n = n
+        if n > 1:
             dist.all_reduce(x)
         return x
 
     @staticmethod
-    def backward(_ctx, grads):
+    def backward(ctx, grads):
+        # gradient will be averaged over the world in loss.backward()
+        # so, we scale it up here to counter that
+        if ctx.n > 1:
+            return grads * ctx.n
         return grads
 
 
