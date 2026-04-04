@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 authors = [
   {name = "Vinam Arora", email = "vinam@seas.upenn.edu"},
 ]
-description = "A collection of genearl utilities for PyTorch"
+description = "A collection of general utilities for PyTorch"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICEN[CS]E.*"]
