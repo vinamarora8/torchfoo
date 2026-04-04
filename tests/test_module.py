@@ -12,8 +12,41 @@ from torchfoo.distributed.distributed import (
     get_world_size,
     parallelize,
 )
-from torchfoo.module import make_ddp
+from torchfoo.module import count_parameters, make_ddp
 from torchfoo.utils import current_device
+
+
+class TestCountParameters:
+    """Tests for count_parameters."""
+
+    def test_default_counts_all(self):
+        m = torch.nn.Linear(10, 5)
+        assert count_parameters(m) == 55
+
+    def test_trainable_only(self):
+        m = torch.nn.Linear(10, 5)
+        m.weight.requires_grad_(False)
+        assert count_parameters(m, only="trainable") == 5  # bias
+
+    def test_frozen_only(self):
+        m = torch.nn.Linear(10, 5)
+        m.weight.requires_grad_(False)
+        assert count_parameters(m, only="frozen") == 50  # weight
+
+    def test_no_parameters(self):
+        m = torch.nn.ReLU()
+        assert count_parameters(m) == 0
+
+    def test_shared_parameters_counted_once(self):
+        m = torch.nn.Sequential(torch.nn.Linear(4, 4), torch.nn.Linear(4, 4))
+        m[1].weight = m[0].weight
+        # 4*4 weight (shared) + 4 bias + 4 bias = 24
+        assert count_parameters(m) == 24
+
+    def test_invalid_only_raises(self):
+        m = torch.nn.Linear(4, 2)
+        with pytest.raises(ValueError, match="only must be"):
+            count_parameters(m, only="bad")
 
 
 class TestMakeDdpNonDistributed:
