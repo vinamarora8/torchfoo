@@ -177,16 +177,8 @@ def parallelize(
             world_size = tfo.dist.get_world_size()
             ...
 
-        train(cfg)
-
-    If you use Hydra, then ``@parallelize`` must be the inner decorator::
-
-        @hydra.main(version_base="1.2", config_path="./configs", config_name="train.yaml")
-        @tfo.dist.parallelize()
-        def train(cfg: DictConfig):
-            ...
-
-        train()
+        if __name__ == "__main__":
+            train(cfg)
     """
 
     def decorator(func):
