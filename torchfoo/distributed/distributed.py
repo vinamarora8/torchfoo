@@ -86,14 +86,17 @@ def setup_distributed(
         master_addr: address of the master node. Falls back to MASTER_ADDR env var, then "localhost".
         master_port: port of the master node. Falls back to MASTER_PORT env var, then an open port.
         backend: distributed backend (default: "auto"). "auto" selects "nccl" if
-            CUDA is available, "gloo" otherwise.
+            CUDA is available and there are enough GPUs for the world_size,
+            "gloo" otherwise.
         force: if True, initialize even when world_size is 1
     """
     import os
 
     if (world_size > 1) or force:
+        use_cuda = torch.cuda.is_available() and torch.cuda.device_count() >= world_size
+
         if backend == "auto":
-            backend = "nccl" if torch.cuda.is_available() else "gloo"
+            backend = "nccl" if use_cuda else "gloo"
 
         if master_addr is None:
             master_addr = os.environ.get("MASTER_ADDR", None)
@@ -109,12 +112,10 @@ def setup_distributed(
 
         os.environ["MASTER_ADDR"] = str(master_addr)
         os.environ["MASTER_PORT"] = str(master_port)
-        dist.init_process_group(
-            backend=backend,
-            rank=rank,
-            world_size=world_size,
-            device_id=torch.device(rank),
-        )
+        init_kwargs = dict(backend=backend, rank=rank, world_size=world_size)
+        if use_cuda:
+            init_kwargs["device_id"] = rank
+        dist.init_process_group(**init_kwargs)  # ty:ignore[invalid-argument-type]
     else:
         logging.info("Skipping distributed setup")
 
@@ -183,21 +184,9 @@ def parallelize(
     """
 
     def decorator(func):
-        def _worker(rank, world_size, *args, **kwargs):
-            setup_distributed(
-                rank,
-                world_size,
-                master_addr=master_addr,
-                master_port=master_port,
-                backend=backend,
-            )
-            if torch.cuda.is_available():
-                torch.cuda.set_device(rank)
-            try:
-                func(*args, **kwargs)
-            finally:
-                cleanup_distributed()
+        import functools
 
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             import torch.multiprocessing as mp
 
@@ -205,14 +194,50 @@ def parallelize(
             ngpus = max(ngpus, 1)
 
             if ngpus > 1:
-                mp.set_start_method("spawn", force=True)
-                for rank in range(1, ngpus):
-                    mp.Process(
-                        target=_worker, args=(rank, ngpus, *args), kwargs=kwargs
-                    ).start()
-
-            _worker(0, ngpus, *args, **kwargs)
+                mp.spawn(
+                    _parallelize_worker,
+                    args=(
+                        wrapper,
+                        ngpus,
+                        master_addr,
+                        master_port,
+                        backend,
+                        args,
+                        kwargs,
+                    ),
+                    nprocs=ngpus,
+                    join=True,
+                )
+            else:
+                _parallelize_worker(
+                    0,
+                    wrapper,
+                    ngpus,
+                    master_addr,
+                    master_port,
+                    backend,
+                    args,
+                    kwargs,
+                )
 
         return wrapper
 
     return decorator
+
+
+def _parallelize_worker(
+    rank, wrapped_fn, world_size, master_addr, master_port, backend, args, kwargs
+):
+    # wrapped_fn is the @parallelize wrapper; __wrapped__ is the original function
+    func = wrapped_fn.__wrapped__
+    setup_distributed(
+        rank,
+        world_size,
+        master_addr=master_addr,
+        master_port=master_port,
+        backend=backend,
+    )
+    try:
+        func(*args, **kwargs)
+    finally:
+        cleanup_distributed()
