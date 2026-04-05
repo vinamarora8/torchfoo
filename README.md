@@ -1,5 +1,6 @@
 # torchfoo
 
+[![PyPI version](https://badge.fury.io/py/torchfoo.svg)](https://badge.fury.io/py/torchfoo)
 [![Documentation](https://img.shields.io/badge/docs-readthedocs-blue)](https://torchfoo.readthedocs.io)
 
 A collection of utilities for PyTorch
