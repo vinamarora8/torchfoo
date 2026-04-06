@@ -2,7 +2,7 @@ import torch.multiprocessing as mp
 
 import pytest
 import torch
-import torch.distributed as dist
+
 
 from torchfoo.distributed.distributed import (
     is_distributed,
@@ -76,8 +76,7 @@ class TestSetupCleanup:
         os.environ.pop("MASTER_PORT", None)
 
     def teardown_method(self):
-        if dist.is_initialized():
-            dist.destroy_process_group()
+        cleanup_distributed()
 
     def test_setup_and_cleanup(self):
         port = _get_open_port()
@@ -114,7 +113,8 @@ class TestSetupCleanup:
     def test_auto_backend_cpu(self):
         if torch.cuda.is_available():
             pytest.skip("test is for CPU-only environments")
-        setup_distributed(rank=0, world_size=1, backend="auto", force=True)
+        port = _get_open_port()
+        setup_distributed(rank=0, world_size=1, backend="auto", force=True, master_port=port)
         assert is_distributed()
 
     def test_master_addr_and_port(self):
@@ -133,8 +133,7 @@ class TestMultiProcess:
     """Tests that spawn multiple processes using gloo on CPU."""
 
     def teardown_method(self):
-        if dist.is_initialized():
-            dist.destroy_process_group()
+        cleanup_distributed()
 
     def test_two_workers_setup_cleanup(self):
         port = _get_open_port()
@@ -170,8 +169,7 @@ class TestSingleParallelize:
     """Tests for the parallelize decorator on CPU (single GPU = single process)."""
 
     def teardown_method(self):
-        if dist.is_initialized():
-            dist.destroy_process_group()
+        cleanup_distributed()
 
     def test_single_process_runs_function(self):
         results = []
