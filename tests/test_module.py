@@ -139,6 +139,18 @@ def _ddp_preserves_parameters(results):
     }
 
 
+@parallelize(world_size=1, force=True)
+def _ddp_find_unused(results):
+    dev = current_device()
+    m = torch.nn.Linear(4, 2).to(dev)
+    default = make_ddp(m)
+    results["default"] = default.find_unused_parameters
+
+    m2 = torch.nn.Linear(4, 2).to(dev)
+    enabled = make_ddp(m2, find_unused_parameters=True)
+    results["enabled"] = enabled.find_unused_parameters
+
+
 class TestMakeDdpSingleProcess:
     """Tests for make_ddp with world_size=1 and force=True."""
 
@@ -151,6 +163,13 @@ class TestMakeDdpSingleProcess:
         results = manager.dict()
         _ddp_single(results)
         assert results["is_ddp"] is True
+
+    def test_find_unused_parameters(self):
+        manager = mp.Manager()
+        results = manager.dict()
+        _ddp_find_unused(results)
+        assert results["default"] is False
+        assert results["enabled"] is True
 
 
 class TestMakeDdpTwoProcesses:

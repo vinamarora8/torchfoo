@@ -36,7 +36,7 @@ def count_parameters(m: torch.nn.Module, only: str = "all") -> int:
     return total
 
 
-def make_ddp(m: torch.nn.Module):
+def make_ddp(m: torch.nn.Module, find_unused_parameters: bool = False):
     r"""Wrap a module with DDP and convert BatchNorm to SyncBatchNorm.
 
     Returns the module unchanged if not in distributed mode.
@@ -47,6 +47,9 @@ def make_ddp(m: torch.nn.Module):
 
     Args:
         m: the module to wrap
+        find_unused_parameters: forwarded to ``DistributedDataParallel``.
+            When ``True``, DDP traverses the autograd graph to find parameters
+            that did not receive gradients. Defaults to ``False``.
 
     Returns:
         The DDP-wrapped module, or the original module if not distributed.
@@ -69,6 +72,10 @@ def make_ddp(m: torch.nn.Module):
                     stacklevel=2,
                 )
         device_ids = [tfoodist.get_rank()] if use_cuda else None
-        return DistributedDataParallel(m, device_ids=device_ids)
+        return DistributedDataParallel(
+            m,
+            device_ids=device_ids,
+            find_unused_parameters=find_unused_parameters,
+        )
     else:
         return m
