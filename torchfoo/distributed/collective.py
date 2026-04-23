@@ -80,9 +80,25 @@ def all_concat_jagged(x: Tensor) -> Tensor:
     if nworld == 1:
         return x
 
-    output = [None for _ in range(nworld)]
-    dist.all_gather_object(output, x)
-    return torch.concat(output)  # type: ignore
+    dev = x.device
+
+    # 1. gather sizes
+    jagged_size = torch.tensor(x.size(0), device=dev)
+    jagged_sizes = [torch.tensor(0, device=dev) for _ in range(nworld)]
+    dist.all_gather(jagged_sizes, jagged_size)
+    jagged_sizes: list[int] = [
+        x.item() for x in jagged_sizes
+    ]  # ty:ignore[invalid-assignment]
+
+    # 2. Create empty tensor list
+    tensor_list = [
+        torch.empty((jagged_sizes[i], *x.shape[1:]), device=dev, dtype=x.dtype)
+        for i in range(nworld)
+    ]
+
+    # 3. Gather the tensors
+    dist.all_gather(tensor_list, x)
+    return torch.concat(tensor_list)
 
 
 def all_concat(x: Tensor) -> Tensor:
